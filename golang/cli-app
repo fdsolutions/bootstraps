@@ -1,0 +1,62 @@
+#! /usr/bin/env zsh 
+
+# -------------------------------------------------
+# Filename:    cli-app
+# Description: boostrap script for golang cli app 
+# Maintainer:  @fdsolutions <https://github.com/fdsolutions>
+# -------------------------------------------------
+
+# Imports 
+
+# source ${DOTFILES_DIR}"/includes/libs/bashful/bin/bashful-input"
+# source ${DOTFILES_DIR}"/includes/libs/bashful/bin/bashful-messages"
+
+# Installing godep 
+df_bootstrap_golang_cli_app() {
+	bashful-messages info "Importing godep from github.com/tools/godep"
+	go get github.com/tools/godep
+
+	# Choosing the need go library 
+	local cli_lib="$(bashful-input choice  -p 'Why go CLI library do you want to use?' codegangsta/cli spf13/cobra alecthomas/kingpin.v2 mitchellh/cli)"
+	local lib_import_path="github.com/${cli_lib}"
+	bashful-messages info "Importing godep from $lib_import_path"
+	go get $lib_import_path
+
+	# Installing Ginkgo for test 
+	bashful-messages info "Importing ginkgo test package"
+	go get github.com/onsi/ginkgo/ginkgo  
+	go get github.com/onsi/gomega      
+
+	# Setup test for the project    
+	local timestamp="$(date +'%s')"
+	local app_name=${1:-"cli-app-new_$timestamp"}
+
+	bashful-messages info "Creating app directory : ./${app_name}"
+	local app_gopath=$GOPATH/src/github.com/fdsolutions/${app_name}
+	mkdir -p $app_gopath	
+	cd $app_gopath
+
+
+	# init app content
+	bashful-messages info "Initializing main package content"
+	cat > $app_gopath/main.go <<GOCODE 
+package main 
+
+import "$lib_import_path"
+
+func main() {
+
+}
+GOCODE
+
+	# Save dependencies
+	godep save
+
+	bashful-messages info "Generating test files."
+	ginkgo bootstrap 
+	ginkgo generate  
+
+	# Initialize a git repo with git-flow support 
+	bashful-messages info "Setting up git glow"
+	git flow init  
+}
